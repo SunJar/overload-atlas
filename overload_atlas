@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overload Atlas - NJIT Sensory Experience Simulator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        #container { position: relative; width: 100%; height: 100%; background: #000; cursor: pointer; }
+        canvas { display: block; width: 100% !important; height: 100% !important; }
+        
+        /* Claude AI Windows - 3 panels */
+        .claude-window {
+            position: absolute;
+            background: rgba(0,0,0,0.92);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        
+        #claude-main {
+            top: 20px; left: 20px;
+            width: 340px; max-height: calc(50vh - 40px);
+            overflow-y: auto;
+        }
+        
+        #claude-tips {
+            bottom: 180px; left: 20px;
+            width: 300px;
+        }
+        
+        #claude-survival {
+            bottom: 20px; left: 20px;
+            width: 300px;
+        }
+        
+        .claude-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .window-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #b5d4f4;
+        }
+        
+        .window-content {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #ddd;
+        }
+        
+        /* Metrics */
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            align-items: center;
+        }
+        .metric-label { color: #aaa; font-size: 13px; }
+        .metric-value { font-weight: 600; font-size: 16px; }
+        .level-1 { color: #4caf50; }
+        .level-2 { color: #8bc34a; }
+        .level-3 { color: #ffc107; }
+        .level-4 { color: #ff9800; }
+        .level-5 { color: #f44336; }
+        
+        #zone-info {
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(102, 126, 234, 0.18);
+            border-radius: 8px;
+            font-size: 12px;
+            color: #b5d4f4;
+            border: 1px solid rgba(102, 126, 234, 0.35);
+        }
+        
+        /* Stress Meter */
+        #stress-meter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.92);
+            padding: 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            width: 200px;
+        }
+        #stress-meter h4 {
+            color: white;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .stress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .stress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #ffc107, #f44336);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .stress-label {
+            color: #aaa;
+            font-size: 11px;
+            margin-top: 6px;
+        }
+        
+        /* Timer */
+        #timer {
+            position: absolute;
+            top: 120px;
+            right: 20px;
+            background: rgba(0,0,0,0.92);
+            padding: 12px 16px;
+            border-radius: 12px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: white;
+            font-size: 13px;
+        }
+        
+        /* Mini Map */
+        #minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            height: 150px;
+            background: rgba(0,0,0,0.92);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(12px);
+        }
+        #minimap-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+        
+        /* Room Label */
+        #room-label {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.92);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        
+        /* Controls */
+        #controls {
+            position: absolute;
+            bottom: 180px;
+            right: 20px;
+            background: rgba(0,0,0,0.92);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        #controls div { margin: 4px 0; }
+        .key {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin: 0 4px;
+            font-size: 11px;
+        }
+        
+        /* Settings */
+        #settings {
+            position: absolute;
+            top: 180px;
+            right: 20px;
+            background: rgba(0,0,0,0.92);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        #settings label {
+            display: block;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+        #settings input[type="range"] {
+            width: 100px;
+            margin-left: 8px;
+        }
+        
+        /* Instruction Overlay */
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255,255,255,0.15);
+            max-width: 500px;
+            z-index: 1000;
+        }
+        #instructions h2 {
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        #instructions p {
+            margin: 12px 0;
+            line-height: 1.6;
+            color: #ccc;
+        }
+        #instructions button {
+            margin-top: 24px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        #instructions button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div id="instructions">
+        <h2>🗺️ Overload Atlas</h2>
+        <p>Experience sensory environments through a neurodivergent lens</p>
+        <p style="font-size: 13px; margin-top: 20px;">
+            Navigate 4 NJIT campus locations with different sensory loads.<br>
+            AI-powered guidance helps you understand and manage sensory overload.
+        </p>
+        <button id="start-btn">Click to Start</button>
+    </div>
+    
+    <!-- Claude AI Windows -->
+    <div id="claude-main" class="claude-window" style="display: none;">
+        <div class="claude-badge">🤖 Claude AI Analysis</div>
+        <div class="window-title">Current Environment</div>
+        
+        <div class="metric">
+            <span class="metric-label">🔊 Noise</span>
+            <span class="metric-value" id="noise">-</span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">💡 Light</span>
+            <span class="metric-value" id="light">-</span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">👥 Crowd</span>
+            <span class="metric-value" id="crowd">-</span>
+        </div>
+        
+        <div id="zone-info" style="display: none;"></div>
+        
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.2);">
+            <div class="window-content" id="main-advice"></div>
+        </div>
+    </div>
+    
+    <div id="claude-tips" class="claude-window" style="display: none;">
+        <div class="claude-badge">💡 Quick Insight</div>
+        <div class="window-content" id="tips-content"></div>
+    </div>
+    
+    <div id="claude-survival" class="claude-window" style="display: none;">
+        <div class="claude-badge">🛡️ Survival Strategy</div>
+        <div class="window-content" id="survival-content"></div>
+    </div>
+    
+    <div id="room-label" style="display: none;">-</div>
+    
+    <div id="stress-meter" style="display: none;">
+        <h4>⚡ Sensory Load</h4>
+        <div class="stress-bar">
+            <div class="stress-fill" id="stress-fill"></div>
+        </div>
+        <div class="stress-label" id="stress-label">Calculating...</div>
+    </div>
+    
+    <div id="timer" style="display: none;">
+        ⏱️ Time: <span id="time-display">0:00</span>
+    </div>
+    
+    <div id="minimap" style="display: none;">
+        <canvas id="minimap-canvas" width="150" height="150"></canvas>
+    </div>
+    
+    <div id="controls" style="display: none;">
+        <div><span class="key">W A S D</span> Move</div>
+        <div><span class="key">Mouse</span> Look</div>
+        <div><span class="key">Space</span> Next room</div>
+        <div style="margin-top: 8px; color: #888; font-size: 11px;">Click screen to lock cursor</div>
+    </div>
+    
+    <div id="settings" style="display: none;">
+        <div>
+            <label>Sensitivity: <input type="range" id="sensitivity" min="0.3" max="2" step="0.1" value="0.8"></label>
+        </div>
+        <div>
+            <label><input type="checkbox" id="invertY"> Invert Y</label>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, rooms = [];
+        let currentRoomIndex = 0;
+        let obstacles = [];
+        let sensitivity = 0.8;
+        let invertY = false;
+        
+        const moveState = { forward: false, backward: false, left: false, right: false };
+        let euler = new THREE.Euler(0, 0, 0, 'YXZ');
+        const PI_2 = Math.PI / 2;
+        
+        let roomStartTime = Date.now();
+        let timerInterval;
+        let currentStress = 0;
+
+        const roomData = [
+            {
+                name: "Quiet Library Study Room",
+                noise: 1, light: 2, crowd: 1,
+                size: { x: 25, z: 25 },
+                color: 0x2d5f3f, wallColor: 0x1a3d2a,
+                effect: 'calm',
+                zones: [
+                    { 
+                        pos: { x: -8, z: -8 }, 
+                        name: "Silent Reading Area",
+                        advice: "Perfect for deep focus work. Sound-dampened walls and soft lighting create an ideal environment for anxiety-prone students during exam periods.",
+                        tips: "Studies show quiet spaces reduce cortisol levels by up to 25%. This zone has been acoustically treated to maintain under 40 decibels.",
+                        survival: "Use this space for marathon study sessions. Recommended: 50-minute focus blocks with 10-minute breaks."
+                    },
+                    { 
+                        pos: { x: 8, z: -8 }, 
+                        name: "Computer Station",
+                        advice: "Individual carrels minimize visual distractions. Low keyboard noise environment. Excellent for students with ADHD or sensory processing sensitivities.",
+                        tips: "Carrel design blocks 70% of peripheral visual stimuli. Mechanical keyboards are prohibited here to maintain low noise floor.",
+                        survival: "Position monitor to reduce glare from windows. Use blue light filter after 6 PM to prevent circadian disruption."
+                    },
+                    { 
+                        pos: { x: 0, z: 8 }, 
+                        name: "Group Study Pods",
+                        advice: "Slightly elevated ambient noise but enclosed pods reduce sensory spillover. Good middle-ground when you need collaboration.",
+                        tips: "Pod walls absorb 60% of internal conversation noise. Best for 2-4 person study groups, not larger gatherings.",
+                        survival: "Book pods during off-peak hours (2-4 PM) for maximum quiet. Use white noise if needed to mask external sounds."
+                    }
+                ],
+                generalAdvice: "Optimal low-sensory environment. Recommended for daily use by sensory-sensitive individuals.",
+                generalTips: "Library maintains 68-72°F year-round. Bring layers as some find the AC intense.",
+                generalSurvival: "Emergency quiet zone: 4th floor east wing. Rarely occupied, no foot traffic, perfect for meltdown recovery."
+            },
+            {
+                name: "Campus Center Cafeteria",
+                noise: 5, light: 4, crowd: 5,
+                size: { x: 30, z: 30 },
+                color: 0x8b1a1a, wallColor: 0x5d1111,
+                effect: 'chaos',
+                zones: [
+                    { 
+                        pos: { x: -10, z: -10 }, 
+                        name: "Food Line Area",
+                        advice: "EXTREME sensory overload zone. Metal tray clanging creates 85+ decibel spikes. Fluorescent glare reflects off steel surfaces.",
+                        tips: "Peak noise occurs 12:00-12:45 PM when lines are longest. Decibel levels regularly exceed safe prolonged exposure limits.",
+                        survival: "Exit strategy: side door to quiet outdoor courtyard. Use it when overwhelmed. Grab-and-go options skip the line chaos."
+                    },
+                    { 
+                        pos: { x: 10, z: -10 }, 
+                        name: "Main Dining Hall",
+                        advice: "Peak chaos: 200+ simultaneous conversations, chair scraping, overlapping music. Triggers fight-or-flight in 60% of autistic individuals.",
+                        tips: "Acoustic echo chamber effect amplifies all sounds. Hard surfaces reflect noise instead of absorbing it.",
+                        survival: "Strongly recommend: noise-canceling headphones + tinted glasses. Eat quickly and leave. 15-minute max exposure recommended."
+                    },
+                    { 
+                        pos: { x: 0, z: 10 }, 
+                        name: "Quieter Corner Tables",
+                        advice: "Distance from kitchen reduces noise by ~15 decibels. Best visiting window: 2-3 PM when crowd density drops below 40%.",
+                        tips: "These tables are 30 feet from speakers, significantly reducing music volume. Still loud, but relatively better.",
+                        survival: "Face wall to reduce visual stimulation. Use these tables as recovery spot after getting food, before leaving entirely."
+                    }
+                ],
+                generalAdvice: "SEVERE multi-sensory overload. Not recommended for extended stays.",
+                generalTips: "Cafeteria operates 7 AM - 9 PM. Least crowded: 7-8 AM and 7-9 PM. Consider these windows exclusively.",
+                generalSurvival: "Pre-pack meals when possible. When unavoidable: have calm-down plan ready. Know your exit routes. Buddy system recommended."
+            },
+            {
+                name: "Standard Lecture Hall",
+                noise: 3, light: 3, crowd: 3,
+                size: { x: 20, z: 20 },
+                color: 0xb8860b, wallColor: 0x7d5a07,
+                effect: 'neutral',
+                zones: [
+                    { 
+                        pos: { x: -6, z: -6 }, 
+                        name: "Back Row Seating",
+                        advice: "Strategic positioning for anxiety management. Full room visibility reduces hypervigilance. Easy exit access critical for those who need breaks.",
+                        tips: "Back row reduces feeling of being watched by others. Speaker's voice at comfortable distance equals lower intensity.",
+                        survival: "Aisle seats specifically. Never middle of row - exit difficulty increases anxiety. Arrive early to secure preferred seat."
+                    },
+                    { 
+                        pos: { x: 6, z: -6 }, 
+                        name: "Front Row Seating",
+                        advice: "Higher intensity. Proximity to speaker + bright projector + awareness of people behind can overwhelm. Good for focus, bad if overstimulated.",
+                        tips: "Projector brightness at front can cause eye strain. Some report headaches after 90+ minute lectures here.",
+                        survival: "Only sit here if you're under-stimulated and need focus boost. Trade-offs: increased attention vs. increased sensory load."
+                    },
+                    { 
+                        pos: { x: 0, z: 6 }, 
+                        name: "Exit Hallway",
+                        advice: "Designated decompression zone. Brief movement breaks improve retention by 23%. Most professors accommodate medical exit needs.",
+                        tips: "Hallway is 20 decibels quieter than lecture hall. 2-minute breather can reset your nervous system.",
+                        survival: "Discuss accommodation with professor first week. Email: 'I may need brief exits for medical reasons.' Legitimizes breaks."
+                    }
+                ],
+                generalAdvice: "Moderate load - manageable for most with preparation. Bring fidget tools, schedule breaks, communicate needs.",
+                generalTips: "Most lecture halls have water fountains outside. Hydration breaks double as sensory breaks.",
+                generalSurvival: "Lectures 90+ minutes: plan one mid-point exit minimum. Don't push through - burnout accumulates across semester."
+            },
+            {
+                name: "Busy ECEC Hallway",
+                noise: 4, light: 5, crowd: 4,
+                size: { x: 35, z: 15 },
+                color: 0xcc5500, wallColor: 0x993d00,
+                effect: 'strobe',
+                zones: [
+                    { 
+                        pos: { x: -12, z: -4 }, 
+                        name: "Main Corridor",
+                        advice: "Triple threat: construction + fluorescent flicker + acoustic echo. 60Hz flicker triggers migraines in 30% of population.",
+                        tips: "Fluorescent tubes here are aging - flicker rate is irregular, making it worse than normal fluorescents. Replacement planned next semester.",
+                        survival: "Wear baseball cap to reduce glare intensity. Polarized sunglasses indoors is socially acceptable here - many do it."
+                    },
+                    { 
+                        pos: { x: 0, z: 4 }, 
+                        name: "Side Alcove",
+                        advice: "Recessed architecture provides partial relief. 40% less foot traffic. Use as staging area before classrooms.",
+                        tips: "This alcove has natural lighting from skylight - reduces fluorescent exposure significantly during day.",
+                        survival: "Good spot to regroup before entering classroom. Take 30 seconds here to prevent cumulative overload."
+                    },
+                    { 
+                        pos: { x: 12, z: -4 }, 
+                        name: "Stairwell Access",
+                        advice: "Alternative route. Stairs quieter than elevator and main hall. Extra 2 minutes is worthwhile sensory energy conservation.",
+                        tips: "Stairwells have different lighting - older incandescent bulbs, less flicker. Acoustically isolated from hallway.",
+                        survival: "Learn alternate routes to all your classrooms. Time investment upfront saves daily sensory expenditure. Worth mapping out."
+                    }
+                ],
+                generalAdvice: "High sensory load with lighting challenges. Mitigation: alternative routes, protective accessories, minimize corridor time.",
+                generalTips: "ECEC hallway is worst 10 minutes before hour (class changes). Plan arrivals to avoid these peaks if possible.",
+                generalSurvival: "If you have back-to-back ECEC classes: arrive early to first, stay in classroom during break. Avoid hallway entirely."
+            }
+        ];
+
+        function init() {
+            const container = document.getElementById('container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x000000, 15, 60);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.6, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            let xOffset = 0;
+            roomData.forEach((data, i) => {
+                createRoom(data, xOffset);
+                xOffset += data.size.x + 10;
+            });
+            
+            document.getElementById('sensitivity').addEventListener('input', (e) => {
+                sensitivity = parseFloat(e.target.value);
+            });
+            document.getElementById('invertY').addEventListener('change', (e) => {
+                invertY = e.target.checked;
+            });
+            
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            document.addEventListener('pointerlockchange', onPointerLockChange);
+            
+            document.getElementById('start-btn').addEventListener('click', startExperience);
+            container.addEventListener('click', () => {
+                if (!document.pointerLockElement) {
+                    container.requestPointerLock();
+                }
+            });
+            
+            animate();
+        }
+
+        function startExperience() {
+            document.getElementById('instructions').style.display = 'none';
+            document.getElementById('claude-main').style.display = 'block';
+            document.getElementById('claude-tips').style.display = 'block';
+            document.getElementById('claude-survival').style.display = 'block';
+            document.getElementById('room-label').style.display = 'block';
+            document.getElementById('stress-meter').style.display = 'block';
+            document.getElementById('timer').style.display = 'block';
+            document.getElementById('minimap').style.display = 'block';
+            document.getElementById('controls').style.display = 'block';
+            document.getElementById('settings').style.display = 'block';
+            
+            const container = document.getElementById('container');
+            container.requestPointerLock();
+            
+            updateHUD();
+            startTimer();
+        }
+
+        function createRoom(data, xOffset) {
+            const group = new THREE.Group();
+            group.position.x = xOffset;
+            
+            const sizeX = data.size.x;
+            const sizeZ = data.size.z;
+            
+            const floorGeo = new THREE.PlaneGeometry(sizeX, sizeZ);
+            const floorMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, side: THREE.DoubleSide });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = Math.PI / 2;
+            group.add(floor);
+            
+            const wallMat = new THREE.MeshBasicMaterial({ color: data.wallColor, side: THREE.DoubleSide });
+            const height = 5;
+            
+            const wall1 = new THREE.Mesh(new THREE.PlaneGeometry(sizeX, height), wallMat);
+            wall1.position.z = -sizeZ/2;
+            wall1.position.y = height/2;
+            group.add(wall1);
+            obstacles.push({ x: xOffset, z: -sizeZ/2, width: sizeX, depth: 0.5 });
+            
+            const wall2 = new THREE.Mesh(new THREE.PlaneGeometry(sizeX, height), wallMat);
+            wall2.position.z = sizeZ/2;
+            wall2.position.y = height/2;
+            wall2.rotation.y = Math.PI;
+            group.add(wall2);
+            obstacles.push({ x: xOffset, z: sizeZ/2, width: sizeX, depth: 0.5 });
+            
+            const wall3 = new THREE.Mesh(new THREE.PlaneGeometry(sizeZ, height), wallMat);
+            wall3.position.x = -sizeX/2;
+            wall3.position.y = height/2;
+            wall3.rotation.y = Math.PI / 2;
+            group.add(wall3);
+            obstacles.push({ x: xOffset - sizeX/2, z: 0, width: 0.5, depth: sizeZ });
+            
+            const wall4 = new THREE.Mesh(new THREE.PlaneGeometry(sizeZ, height), wallMat);
+            wall4.position.x = sizeX/2;
+            wall4.position.y = height/2;
+            wall4.rotation.y = -Math.PI / 2;
+            group.add(wall4);
+            obstacles.push({ x: xOffset + sizeX/2, z: 0, width: 0.5, depth: sizeZ });
+            
+            const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(sizeX, sizeZ), wallMat);
+            ceiling.position.y = height;
+            ceiling.rotation.x = -Math.PI / 2;
+            group.add(ceiling);
+            
+            data.zones.forEach((zone, i) => {
+                const zoneGroup = new THREE.Group();
+                zoneGroup.position.set(zone.pos.x, 0, zone.pos.z);
+                
+                const shapes = [
+                    new THREE.BoxGeometry(3, 2, 1.5),
+                    new THREE.BoxGeometry(1, 2.5, 1),
+                    new THREE.BoxGeometry(2, 0.8, 2),
+                ];
+                
+                const mesh = new THREE.Mesh(shapes[i % 3], new THREE.MeshBasicMaterial({ 
+                    color: data.color, transparent: true, opacity: 0.6
+                }));
+                mesh.position.y = 1;
+                zoneGroup.add(mesh);
+                
+                const marker = new THREE.Mesh(new THREE.CircleGeometry(2, 32), new THREE.MeshBasicMaterial({ 
+                    color: data.color, transparent: true, opacity: 0.3
+                }));
+                marker.rotation.x = -Math.PI / 2;
+                marker.position.y = 0.01;
+                zoneGroup.add(marker);
+                
+                group.add(zoneGroup);
+                obstacles.push({ x: xOffset + zone.pos.x, z: zone.pos.z, width: 3, depth: 2 });
+            });
+            
+            for (let i = 0; i < 8; i++) {
+                const size = Math.random() * 0.5 + 0.3;
+                const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size * 2, size), new THREE.MeshBasicMaterial({ 
+                    color: data.color, transparent: true, opacity: 0.4
+                }));
+                const posX = (Math.random() - 0.5) * (sizeX - 4);
+                const posZ = (Math.random() - 0.5) * (sizeZ - 4);
+                cube.position.set(posX, size, posZ);
+                group.add(cube);
+                obstacles.push({ x: xOffset + posX, z: posZ, width: size, depth: size });
+            }
+            
+            scene.add(group);
+            rooms.push({ group, data, xOffset });
+        }
+
+        function checkCollision(newX, newZ) {
+            const playerRadius = 0.5;
+            for (let obs of obstacles) {
+                const dx = Math.abs(newX - obs.x);
+                const dz = Math.abs(newZ - obs.z);
+                if (dx < (obs.width/2 + playerRadius) && dz < (obs.depth/2 + playerRadius)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function onKeyDown(e) {
+            switch(e.code) {
+                case 'KeyW': moveState.forward = true; break;
+                case 'KeyS': moveState.backward = true; break;
+                case 'KeyA': moveState.left = true; break;
+                case 'KeyD': moveState.right = true; break;
+                case 'Space': 
+                    e.preventDefault();
+                    switchRoom();
+                    break;
+            }
+        }
+
+        function onKeyUp(e) {
+            switch(e.code) {
+                case 'KeyW': moveState.forward = false; break;
+                case 'KeyS': moveState.backward = false; break;
+                case 'KeyA': moveState.left = false; break;
+                case 'KeyD': moveState.right = false; break;
+            }
+        }
+
+        function onPointerLockChange() {
+            if (document.pointerLockElement) {
+                document.addEventListener('mousemove', onMouseMove);
+            } else {
+                document.removeEventListener('mousemove', onMouseMove);
+            }
+        }
+
+        function onMouseMove(e) {
+            const movementX = e.movementX || 0;
+            const movementY = e.movementY || 0;
+            
+            euler.setFromQuaternion(camera.quaternion);
+            euler.y -= movementX * 0.002 * sensitivity;
+            euler.x -= movementY * 0.002 * sensitivity * (invertY ? -1 : 1);
+            euler.x = Math.max(-PI_2, Math.min(PI_2, euler.x));
+            camera.quaternion.setFromEuler(euler);
+        }
+
+        function switchRoom() {
+            currentRoomIndex = (currentRoomIndex + 1) % rooms.length;
+            const newRoom = rooms[currentRoomIndex];
+            camera.position.x = newRoom.xOffset;
+            camera.position.z = 0;
+            updateHUD();
+            resetTimer();
+        }
+
+        function getCurrentZone() {
+            const room = roomData[currentRoomIndex];
+            const currentRoom = rooms[currentRoomIndex];
+            const localX = camera.position.x - currentRoom.xOffset;
+            const localZ = camera.position.z;
+            
+            let closestZone = null;
+            let minDist = Infinity;
+            
+            room.zones.forEach(zone => {
+                const dist = Math.sqrt(Math.pow(localX - zone.pos.x, 2) + Math.pow(localZ - zone.pos.z, 2));
+                if (dist < minDist && dist < 5) {
+                    minDist = dist;
+                    closestZone = zone;
+                }
+            });
+            
+            return closestZone;
+        }
+
+        function updateHUD() {
+            const room = roomData[currentRoomIndex];
+            const zone = getCurrentZone();
+            
+            document.getElementById('noise').textContent = room.noise + '/5';
+            document.getElementById('noise').className = 'metric-value level-' + room.noise;
+            
+            document.getElementById('light').textContent = room.light + '/5';
+            document.getElementById('light').className = 'metric-value level-' + room.light;
+            
+            document.getElementById('crowd').textContent = room.crowd + '/5';
+            document.getElementById('crowd').className = 'metric-value level-' + room.crowd;
+            
+            const zoneInfo = document.getElementById('zone-info');
+            if (zone) {
+                zoneInfo.textContent = '📍 ' + zone.name;
+                zoneInfo.style.display = 'block';
+                document.getElementById('main-advice').textContent = zone.advice;
+                document.getElementById('tips-content').textContent = zone.tips;
+                document.getElementById('survival-content').textContent = zone.survival;
+            } else {
+                zoneInfo.style.display = 'none';
+                document.getElementById('main-advice').textContent = room.generalAdvice;
+                document.getElementById('tips-content').textContent = room.generalTips;
+                document.getElementById('survival-content').textContent = room.generalSurvival;
+            }
+            
+            document.getElementById('room-label').textContent = room.name;
+            
+            currentStress = ((room.noise + room.light + room.crowd) / 15) * 100;
+            updateStressMeter();
+        }
+
+        function updateStressMeter() {
+            const fill = document.getElementById('stress-fill');
+            const label = document.getElementById('stress-label');
+            
+            fill.style.width = currentStress + '%';
+            
+            if (currentStress < 33) {
+                label.textContent = 'Low - Comfortable';
+            } else if (currentStress < 66) {
+                label.textContent = 'Moderate - Manageable';
+            } else {
+                label.textContent = 'High - Overwhelming';
+            }
+        }
+
+        function startTimer() {
+            roomStartTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - roomStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('time-display').textContent = 
+                    minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+            }, 1000);
+        }
+
+        function resetTimer() {
+            roomStartTime = Date.now();
+        }
+
+        function updateMinimap() {
+            const canvas = document.getElementById('minimap-canvas');
+            const ctx = canvas.getContext('2d');
+            const room = roomData[currentRoomIndex];
+            const currentRoom = rooms[currentRoomIndex];
+            
+            ctx.clearRect(0, 0, 150, 150);
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.strokeRect(10, 10, 130, 130);
+            
+            room.zones.forEach(zone => {
+                const x = 75 + (zone.pos.x / room.size.x) * 130;
+                const y = 75 + (zone.pos.z / room.size.z) * 130;
+                ctx.fillStyle = 'rgba(102, 126, 234, 0.3)';
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            const localX = camera.position.x - currentRoom.xOffset;
+            const localZ = camera.position.z;
+            const playerX = 75 + (localX / room.size.x) * 130;
+            const playerY = 75 + (localZ / room.size.z) * 130;
+            
+            ctx.fillStyle = '#4caf50';
+            ctx.beginPath();
+            ctx.arc(playerX, playerY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#4caf50';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(playerX, playerY);
+            const angle = euler.y;
+            ctx.lineTo(playerX + Math.sin(angle) * 10, playerY + Math.cos(angle) * 10);
+            ctx.stroke();
+        }
+
+        let flashTimer = 0;
+        let lastUpdate = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const direction = new THREE.Vector3();
+            const speed = 0.15;
+            
+            if (moveState.forward) direction.z -= 1;
+            if (moveState.backward) direction.z += 1;
+            if (moveState.left) direction.x -= 1;
+            if (moveState.right) direction.x += 1;
+            
+            direction.normalize();
+            direction.applyQuaternion(camera.quaternion);
+            direction.y = 0;
+            direction.normalize();
+            
+            const newX = camera.position.x + direction.x * speed;
+            const newZ = camera.position.z + direction.z * speed;
+            
+            if (!checkCollision(newX, camera.position.z)) {
+                camera.position.x = newX;
+            }
+            if (!checkCollision(camera.position.x, newZ)) {
+                camera.position.z = newZ;
+            }
+            
+            if (Date.now() - lastUpdate > 500) {
+                updateHUD();
+                updateMinimap();
+                lastUpdate = Date.now();
+            }
+            
+            const room = roomData[currentRoomIndex];
+            flashTimer += 0.05;
+            
+            if (room.effect === 'strobe') {
+                const flicker = Math.random() > 0.7 ? 0.3 : 1;
+                renderer.setClearColor(new THREE.Color(room.color).multiplyScalar(flicker * 0.25));
+            } else if (room.effect === 'chaos') {
+                const pulse = 0.5 + Math.sin(flashTimer * 3) * 0.3;
+                renderer.setClearColor(new THREE.Color(room.color).multiplyScalar(pulse * 0.15));
+            } else if (room.effect === 'calm') {
+                renderer.setClearColor(new THREE.Color(room.color).multiplyScalar(0.12));
+            } else {
+                renderer.setClearColor(new THREE.Color(room.color).multiplyScalar(0.2));
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
